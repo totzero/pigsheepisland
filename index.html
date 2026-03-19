@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>猪咩岛 Desktop</title>
+<link href="https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&family=Space+Grotesk:wght@400;700&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none}
+body{width:100vw;height:100vh;overflow:hidden;font-family:'Nunito',sans-serif;cursor:default}
+.wallpaper{position:absolute;inset:0;background-image:linear-gradient(to top,#fddb92 0%,#d1fdff 100%);z-index:0}
+.wallpaper-text{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);font-family:'WDXL Lubrifont SC',cursive;font-size:clamp(1rem,2.5vw,1.6rem);color:rgba(255,255,255,0.5);letter-spacing:.3em;white-space:nowrap;pointer-events:none;text-shadow:0 1px 4px rgba(0,0,0,.1)}
+
+/* TASKBAR */
+.taskbar{position:absolute;bottom:0;left:0;right:0;height:44px;background:linear-gradient(180deg,#d4d0c8 0%,#bab5aa 100%);border-top:2px solid #fff;box-shadow:inset 0 1px 0 #fff;display:flex;align-items:center;padding:0 6px;gap:4px;z-index:1000}
+.start-btn{height:30px;padding:0 10px;background:linear-gradient(180deg,#d4d0c8,#a8a49c);border:2px solid;border-color:#fff #808080 #808080 #fff;font-size:.78rem;font-weight:700;display:flex;align-items:center;gap:6px;cursor:pointer;font-family:'Space Grotesk',sans-serif}
+.start-btn:active{border-color:#808080 #fff #fff #808080}
+.taskbar-divider{width:1px;height:28px;background:#808080;margin:0 4px;box-shadow:1px 0 0 #fff}
+.taskbar-windows{display:flex;gap:3px;flex:1}
+.taskbar-win-btn{height:28px;padding:0 8px;min-width:100px;max-width:140px;background:linear-gradient(180deg,#bab5aa,#d4d0c8);border:2px solid;border-color:#808080 #fff #fff #808080;font-size:.72rem;font-weight:700;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;font-family:'Space Grotesk',sans-serif;display:none;align-items:center;gap:4px}
+.taskbar-win-btn.visible{display:flex}
+.taskbar-win-btn.active{background:linear-gradient(180deg,#a8a49c,#c4c0b8)}
+.clock{font-size:.75rem;font-weight:700;font-family:'Space Grotesk',sans-serif;background:linear-gradient(180deg,#bab5aa,#d4d0c8);border:2px solid;border-color:#808080 #fff #fff #808080;padding:0 8px;height:28px;display:flex;align-items:center;min-width:70px;justify-content:center}
+
+/* DESKTOP */
+.desktop{position:absolute;inset:0;bottom:44px;z-index:1}
+.icon{position:absolute;width:80px;padding:6px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border-radius:2px}
+.icon:hover{background:rgba(255,255,255,.3)}
+.icon.selected{background:rgba(0,80,180,.35);outline:1px dashed rgba(255,255,255,.7)}
+.folder-shape{width:48px;height:40px;position:relative;margin-top:4px}
+.folder-shape::before{content:'';position:absolute;top:-8px;left:2px;width:20px;height:10px;background:var(--fc);border-radius:4px 4px 0 0}
+.folder-shape::after{content:'';position:absolute;inset:0;background:var(--fc);border-radius:0 3px 3px 3px}
+.folder-emoji{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);font-size:1.1rem;z-index:2}
+.icon-label{font-size:.7rem;font-weight:700;color:#3a2a10;text-align:center;text-shadow:0 1px 2px rgba(255,255,255,.8);line-height:1.3;max-width:76px;word-break:break-word}
+
+/* WINDOWS */
+.win{position:absolute;min-width:300px;min-height:180px;background:#d4d0c8;border:2px solid;border-color:#fff #808080 #808080 #fff;box-shadow:2px 2px 0 #000;z-index:100;display:none}
+.win.open{display:block}
+.win.focused{z-index:200}
+.titlebar{height:22px;background:linear-gradient(90deg,#0a0a82,#1084d0);display:flex;align-items:center;justify-content:space-between;padding:0 4px 0 6px;cursor:move}
+.titlebar-left{display:flex;align-items:center;gap:5px}
+.titlebar-icon{font-size:.85rem;line-height:1}
+.titlebar-title{color:white;font-size:.75rem;font-weight:700;font-family:'Space Grotesk',sans-serif;letter-spacing:.03em}
+.titlebar-btns{display:flex;gap:2px}
+.win-btn{width:16px;height:14px;background:linear-gradient(180deg,#d4d0c8,#a8a49c);border:1px solid;border-color:#fff #808080 #808080 #fff;font-size:.6rem;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:700;color:#000;font-family:monospace}
+.win-btn:active{border-color:#808080 #fff #fff #808080}
+.win-menubar{height:22px;border-bottom:1px solid #808080;display:flex;align-items:center;padding:0 4px;gap:2px;background:#d4d0c8}
+.menu-item{font-size:.72rem;padding:2px 6px;cursor:pointer;font-family:'Space Grotesk',sans-serif}
+.menu-item:hover{background:#0a0a82;color:white}
+.win-body{padding:12px;overflow-y:auto;background:#fff;margin:3px;border:2px solid;border-color:#808080 #fff #fff #808080;font-family:'Nunito',sans-serif;font-size:.88rem;color:#222;line-height:1.7}
+.win-statusbar{height:20px;border-top:2px solid;border-color:#808080 #fff #fff #808080;margin:3px;display:flex;align-items:center;padding:0 6px;font-size:.65rem;color:#444;font-family:'Space Grotesk',sans-serif}
+.resize-handle{position:absolute;bottom:0;right:0;width:12px;height:12px;cursor:se-resize;background:linear-gradient(135deg,transparent 50%,#808080 50%,#808080 60%,transparent 60%,transparent 70%,#808080 70%,#808080 80%,transparent 80%)}
+
+/* SHARED COMPONENTS */
+.wc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.wc-card{background:#f8f6f0;border:1px solid #d0ccc0;padding:8px;border-radius:3px}
+.wc-card-title{font-weight:700;font-size:.78rem;color:#2E4C99;margin-bottom:.2rem}
+.wc-card-desc{font-size:.72rem;color:#666;line-height:1.5}
+.char-row{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e0dcd0}
+.char-row:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.char-avatar{width:64px;height:64px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid #d0ccc0;flex-direction:column;gap:2px}
+.char-info-name{font-family:'WDXL Lubrifont SC',cursive;font-size:1rem;color:#2E4C99}
+.char-info-role{font-size:.68rem;color:#888;margin-bottom:.3rem;font-family:'Space Grotesk',sans-serif;letter-spacing:.05em}
+.char-info-desc{font-size:.75rem;color:#555;line-height:1.5}
+.ctag{font-size:.62rem;padding:2px 6px;border-radius:2px;font-family:'Space Grotesk',sans-serif;font-weight:700;color:#444}
+.char-essence{display:inline-block;margin-top:4px;font-size:.7rem;font-weight:700;background:#fff4a0;padding:2px 7px;border-radius:2px;color:#444}
+.section-label{font-size:.65rem;font-weight:700;color:#2E4C99;letter-spacing:.1em;font-family:'Space Grotesk',sans-serif;margin:10px 0 6px;padding-bottom:3px;border-bottom:1px solid #e0dcd0}
+
+/* IMAGE PLACEHOLDER */
+.img-placeholder{background:#f0eee8;border:2px dashed #b0a898;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#a0988a;font-size:.7rem;font-family:'Space Grotesk',sans-serif;letter-spacing:.06em;text-align:center}
+.img-placeholder span{font-size:1.6rem}
+
+/* MAP HOTSPOTS */
+.mhot{position:absolute;width:24px;height:24px;transform:translate(-50%,-50%);cursor:pointer;z-index:10}
+.mhot::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:12px;height:12px;background:#2E4C99;border-radius:50%;border:2px solid white;transition:transform .2s}
+.mhot::after{content:'';position:absolute;top:0;left:0;width:24px;height:24px;border:2px solid #2E4C99;border-radius:50%;animation:mpulse 2s ease-out infinite;opacity:0}
+.mhot:hover::before{transform:translate(-50%,-50%) scale(1.5)}
+@keyframes mpulse{0%{transform:scale(.4);opacity:.8}100%{transform:scale(1.4);opacity:0}}
+.mplace-btn{background:white;border:1px solid #d0ccc0;border-radius:3px;padding:3px 7px;font-size:.68rem;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;transition:all .15s}
+.mplace-btn:hover,.mplace-btn.active{background:#2E4C99;color:white;border-color:#2E4C99}
+
+/* START MENU */
+.sm-item{padding:5px 10px 5px 14px;font-size:.78rem;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;display:flex;align-items:center}
+.sm-item:hover{background:#2E4C99;color:white}
+</style>
+</head>
+<body>
+
+<div class="wallpaper">
+  <div class="wallpaper-text">猪咩岛 · PIG & SHEEP ISLAND · 漂浮的治愈圣地</div>
+</div>
+
+<!-- DESKTOP ICONS -->
+<div class="desktop" id="desktop">
+  <div class="icon" id="icon-world" style="left:20px;top:20px">
+    <div style="position:relative;width:48px;height:48px;margin:0 auto"><div class="folder-shape" style="--fc:#ECB53C"><span class="folder-emoji">🌍</span></div></div>
+    <div class="icon-label">世界观</div>
+  </div>
+  <div class="icon" id="icon-chars" style="left:20px;top:110px">
+    <div style="position:relative;width:48px;height:48px;margin:0 auto"><div class="folder-shape" style="--fc:#ECB53C"><span class="folder-emoji">🐷</span></div></div>
+    <div class="icon-label">主角</div>
+  </div>
+  <div class="icon" id="icon-subchars" style="left:110px;top:110px">
+    <div style="position:relative;width:48px;height:48px;margin:0 auto"><div class="folder-shape" style="--fc:#ECB53C"><span class="folder-emoji">🐾</span></div></div>
+    <div class="icon-label">配角图鉴</div>
+  </div>
+  <div class="icon" id="icon-map" style="left:20px;top:200px">
+    <div style="position:relative;width:48px;height:48px;margin:0 auto"><div class="folder-shape" style="--fc:#ECB53C"><span class="folder-emoji">🗺️</span></div></div>
+    <div class="icon-label">岛屿地图</div>
+  </div>
+  <div class="icon" id="icon-church" style="left:20px;top:290px">
+    <div style="position:relative;width:48px;height:48px;margin:0 auto"><div class="folder-shape" style="--fc:#ECB53C"><span class="folder-emoji">🔔</span></div></div>
+    <div class="icon-label">咩光教会</div>
+  </div>
+  <div class="icon" id="icon-about" style="left:20px;top:380px">
+    <div style="position:relative;width:48px;height:48px;margin:0 auto"><div class="folder-shape" style="--fc:#ECB53C"><span class="folder-emoji">📋</span></div></div>
+    <div class="icon-label">关于猪咩岛</div>
+  </div>
+</div>
+
+<!-- ══ WIN: 世界观 ══ -->
+<div class="win" id="win-world" style="left:100px;top:50px;width:460px">
+  <div class="titlebar" onmousedown="startDrag(event,'win-world')">
+    <div class="titlebar-left"><span class="titlebar-icon">🌍</span><span class="titlebar-title">世界观 — World Lore</span></div>
+    <div class="titlebar-btns">
+      <div class="win-btn" onclick="minimizeWin('win-world')">_</div>
+      <div class="win-btn" onclick="maximizeWin('win-world')">□</div>
+      <div class="win-btn" onclick="closeWin('win-world')" style="font-weight:900">×</div>
+    </div>
+  </div>
+  <div class="win-menubar"><span class="menu-item">文件(F)</span><span class="menu-item">查看(V)</span><span class="menu-item">帮助(H)</span></div>
+  <div class="win-body" style="height:320px">
+    <div class="wc-grid">
+      <div class="wc-card"><div class="wc-card-title">🐋 鲸鱼骨骼基岛</div><div class="wc-card-desc">整座岛由古代鲸鱼的骨骼支撑，珊瑚在骨缝中蓬勃生长。</div></div>
+      <div class="wc-card"><div class="wc-card-title">☁️ 云朵能量</div><div class="wc-card-desc">云能提炼厂收集云海能量，维持小岛漂浮与居民日常。</div></div>
+      <div class="wc-card"><div class="wc-card-title">🌸 治愈氛围</div><div class="wc-card-desc">粉蓝绿黄的色彩基调，让来访者感到宁静与疗愈。</div></div>
+      <div class="wc-card"><div class="wc-card-title">🌊 云海之上</div><div class="wc-card-desc">小岛漂浮于无边云海，与地面世界完全隔绝。</div></div>
+      <div class="wc-card"><div class="wc-card-title">🏛️ 咩光教会</div><div class="wc-card-desc">崇拜象征平衡的「咩神」，全岛精神核心。</div></div>
+      <div class="wc-card"><div class="wc-card-title">🐞 花大姐</div><div class="wc-card-desc">戴墨镜的七星瓢虫，小猪的专属坐骑。</div></div>
+    </div>
+  </div>
+  <div class="win-statusbar">6 个设定</div>
+  <div class="resize-handle" onmousedown="startResize(event,'win-world')"></div>
+</div>
+
+<!-- ══ WIN: 主角 ══ -->
+<div class="win" id="win-chars" style="left:120px;top:50px;width:500px">
+  <div class="titlebar" onmousedown="startDrag(event,'win-chars')">
+    <div class="titlebar-left"><span class="titlebar-icon">🐷</span><span class="titlebar-title">主角 — Main Characters</span></div>
+    <div class="titlebar-btns">
+      <div class="win-btn" onclick="minimizeWin('win-chars')">_</div>
+      <div class="win-btn" onclick="maximizeWin('win-chars')">□</div>
+      <div class="win-btn" onclick="closeWin('win-chars')" style="font-weight:900">×</div>
+    </div>
+  </div>
+  <div class="win-menubar"><span class="menu-item">文件(F)</span><span class="menu-item">查看(V)</span><span class="menu-item">帮助(H)</span></div>
+  <div class="win-body" style="height:400px">
+
+    <!-- タピオカ -->
+    <div class="char-row">
+      <!-- 图片占位：正方形，替换为 <img src="..."> -->
+      <div class="img-placeholder" style="width:100px;height:100px;flex-shrink:0">
+        <span>🐷</span>
+        <div>タピオカ<br>图片</div>
+      </div>
+      <div style="flex:1">
+        <div class="char-info-name">タピオカくん</div>
+        <div class="char-info-role">Tapioca · 风之引导者 · 云朵收集者</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin:4px 0">
+          <span class="ctag" style="background:#e8f0ff">蓝色背带裤</span>
+          <span class="ctag" style="background:#e8f0ff">奶油色T恤</span>
+          <span class="ctag" style="background:#ffeaea">圆圆耳朵</span>
+          <span class="ctag" style="background:#ffeaea">螺旋小尾巴</span>
+        </div>
+        <div class="char-info-desc">粉色皮肤，耳朵圆圆，有螺旋小尾巴。温和可靠，动作慢但稳定。坐骑为花大姐（戴墨镜七星瓢虫）。</div>
+      </div>
+    </div>
+
+    <!-- ラムネ -->
+    <div class="char-row" style="border-bottom:none">
+      <!-- 图片占位：正方形，替换为 <img src="..."> -->
+      <div class="img-placeholder" style="width:100px;height:100px;flex-shrink:0">
+        <span>🐑</span>
+        <div>ラムネ<br>图片</div>
+      </div>
+      <div style="flex:1">
+        <div class="char-info-name">ラムネちゃん</div>
+        <div class="char-info-role">Ramune · 主祭司 · 心之祭司</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin:4px 0">
+          <span class="ctag" style="background:#fffbe8">黄色连体衣</span>
+          <span class="ctag" style="background:#e8f6ff">淡蓝色卷毛</span>
+          <span class="ctag" style="background:#e8f6ff">蓝色小尾巴</span>
+          <span class="ctag" style="background:#ffeaea">肉色耳朵</span>
+        </div>
+        <div class="char-info-desc">淡蓝色卷毛，肉色耳朵，蓝色小尾巴。好奇心强，温柔爱交流。持风铃杖（7个半透明蓝铃铛）。</div>
+      </div>
+    </div>
+
+  </div>
+  <div class="win-statusbar">2 位主角 · 点击图片占位替换真实插图</div>
+  <div class="resize-handle" onmousedown="startResize(event,'win-chars')"></div>
+</div>
+
+<!-- ══ WIN: 配角 ══ -->
+<div class="win" id="win-subchars" style="left:160px;top:70px;width:500px">
+  <div class="titlebar" onmousedown="startDrag(event,'win-subchars')">
+    <div class="titlebar-left"><span class="titlebar-icon">🐾</span><span class="titlebar-title">配角图鉴 — Supporting Characters</span></div>
+    <div class="titlebar-btns">
+      <div class="win-btn" onclick="minimizeWin('win-subchars')">_</div>
+      <div class="win-btn" onclick="maximizeWin('win-subchars')">□</div>
+      <div class="win-btn" onclick="closeWin('win-subchars')" style="font-weight:900">×</div>
+    </div>
+  </div>
+  <div class="win-menubar"><span class="menu-item">文件(F)</span><span class="menu-item">查看(V)</span><span class="menu-item">帮助(H)</span></div>
+  <div class="win-body" style="height:440px">
+
+    <div class="section-label">咩光教 · SHEEP FOLK</div>
+    <div class="char-row">
+      <div class="img-placeholder" style="width:64px;height:64px;flex-shrink:0"><span style="font-size:1.2rem">🐏</span><div style="font-size:.6rem">图片</div></div>
+      <div style="flex:1"><div class="char-info-name">长角羊民</div><div class="char-info-role">记忆 · 记录 · 仪式的守望者</div><div class="char-info-desc">最年长感，话少，动作慢。记住季节变化、云的形状、旧名字。常出现在古树前、旧书、木牌附近。<div class="char-essence">📜 羊民的长期记忆体</div></div></div>
+    </div>
+    <div class="char-row">
+      <div class="img-placeholder" style="width:64px;height:64px;flex-shrink:0"><span style="font-size:1.2rem">🐑</span><div style="font-size:.6rem">图片</div></div>
+      <div style="flex:1"><div class="char-info-name">黑脸羊民</div><div class="char-info-role">执行 · 秩序 · 日常运转</div><div class="char-info-desc">行动力最稳定，负责搬运、看守、排队。协助小猪的云收集流程，常成对出现。<div class="char-essence">⚙️ 低调运转的日常引擎</div></div></div>
+    </div>
+    <div class="char-row">
+      <div class="img-placeholder" style="width:64px;height:64px;flex-shrink:0"><span style="font-size:1.2rem">🐐</span><div style="font-size:.6rem">图片</div></div>
+      <div style="flex:1"><div class="char-info-name">山羊羊民</div><div class="char-info-role">探索 · 地形 · 边界</div><div class="char-info-desc">喜欢高处、边缘、坡地，对岛的边界特别敏感。最先发现新裂缝、新小路、奇怪的回声。<div class="char-essence">🧭 猪咩岛的地图绘制者</div></div></div>
+    </div>
+    <div class="char-row">
+      <div class="img-placeholder" style="width:64px;height:64px;flex-shrink:0"><span style="font-size:1.2rem">✨</span><div style="font-size:.6rem">图片</div></div>
+      <div style="flex:1"><div class="char-info-name">未探险羊民</div><div class="char-info-role">未知 · 变化 · 未来可能性</div><div class="char-info-desc">数量极少，毛色或角型不完全吻合，没有固定功能。只在岛发生变化时出现。<div class="char-essence">✨ 为世界保留生长的空间</div></div></div>
+    </div>
+
+    <div class="section-label">猪民 · PIG FOLK</div>
+    <div class="char-row">
+      <div class="img-placeholder" style="width:64px;height:64px;flex-shrink:0"><span style="font-size:1.2rem">🐖</span><div style="font-size:.6rem">图片</div></div>
+      <div style="flex:1"><div class="char-info-name">斑点猪民</div><div class="char-info-role">商人 · 交换 · 消息</div><div class="char-info-desc">成双或成群出现，擅长交换云、食物、小道消息。最先知道「岛上最近不一样了」。<div class="char-essence">💬 猪咩岛的商人</div></div></div>
+    </div>
+    <div class="char-row">
+      <div class="img-placeholder" style="width:64px;height:64px;flex-shrink:0"><span style="font-size:1.2rem">🐷</span><div style="font-size:.6rem">图片</div></div>
+      <div style="flex:1"><div class="char-info-name">条纹猪民</div><div class="char-info-role">路径 · 重复 · 长距离</div><div class="char-info-desc">行走能力最强，熟悉路线、时间、节奏。知道哪条路安全，哪条路「以前是安全的」。<div class="char-essence">🛤 徒步者，探险者</div></div></div>
+    </div>
+    <div class="char-row">
+      <div class="img-placeholder" style="width:64px;height:64px;flex-shrink:0"><span style="font-size:1.2rem">🌟</span><div style="font-size:.6rem">图片</div></div>
+      <div style="flex:1"><div class="char-info-name">星点猪民</div><div class="char-info-role">稀有 · 愿望 · 云的变种</div><div class="char-info-desc">与「特殊云」关系最近。背包里可能装着星星云、情绪云、未命名的云。<div class="char-essence">🌠 探索者</div></div></div>
+    </div>
+    <div class="char-row" style="border-bottom:none">
+      <div class="img-placeholder" style="width:64px;height:64px;flex-shrink:0"><span style="font-size:1.2rem">🌱</span><div style="font-size:.6rem">图片</div></div>
+      <div style="flex:1"><div class="char-info-name">未探险猪民</div><div class="char-info-role">适应 · 进化 · 新形态</div><div class="char-info-desc">形态介于已知猪民之间，常和新工具、新能源、新岛屿一起被目击。<div class="char-essence">🌱 世界往前走时留下的痕迹</div></div></div>
+    </div>
+
+  </div>
+  <div class="win-statusbar">8 位配角 · 咩光教 4 · 猪民 4</div>
+  <div class="resize-handle" onmousedown="startResize(event,'win-subchars')"></div>
+</div>
+
+<!-- ══ WIN: 岛屿地图 ══ -->
+<div class="win" id="win-map" style="left:140px;top:60px;width:560px">
+  <div class="titlebar" onmousedown="startDrag(event,'win-map')">
+    <div class="titlebar-left"><span class="titlebar-icon">🗺️</span><span class="titlebar-title">岛屿地图 — Island Map</span></div>
+    <div class="titlebar-btns">
+      <div class="win-btn" onclick="minimizeWin('win-map')">_</div>
+      <div class="win-btn" onclick="maximizeWin('win-map')">□</div>
+      <div class="win-btn" onclick="closeWin('win-map')" style="font-weight:900">×</div>
+    </div>
+  </div>
+  <div class="win-menubar"><span class="menu-item">文件(F)</span><span class="menu-item">查看(V)</span><span class="menu-item">帮助(H)</span></div>
+  <div class="win-body" style="height:420px;padding:10px;background:#f0eee8">
+    <div id="mapWrap" style="position:relative;width:100%;border:2px solid #808080;border-radius:4px;overflow:hidden">
+      <!-- 替换为 <img src="你的地图图片链接" style="width:100%;display:block"> -->
+      <div class="img-placeholder" style="width:100%;aspect-ratio:16/7">
+        <span style="font-size:2.5rem">🗺️</span>
+        <div style="font-family:'WDXL Lubrifont SC',cursive;font-size:.95rem;color:#2E4C99">猪咩岛地图</div>
+        <div style="font-size:.68rem">替换为地图图片</div>
+      </div>
+      <div class="mhot" style="left:20%;top:38%" data-place="小猪咩小镇"></div>
+      <div class="mhot" style="left:74%;top:14%" data-place="咩神殿"></div>
+      <div class="mhot" style="left:64%;top:26%" data-place="云能提炼厂"></div>
+      <div class="mhot" style="left:46%;top:44%" data-place="遗骨矿道"></div>
+      <div class="mhot" style="left:61%;top:46%" data-place="粉红图书馆"></div>
+      <div class="mhot" style="left:83%;top:52%" data-place="咩光珊咖馆"></div>
+      <div class="mhot" style="left:15%;top:68%" data-place="星空露营地"></div>
+      <div class="mhot" style="left:65%;top:66%" data-place="骨骼温泉"></div>
+      <div class="mhot" style="left:80%;top:76%" data-place="曲奇饼海滩"></div>
+      <div class="mhot" style="left:50%;top:17%" data-place="咩咩珊瑚礁"></div>
+      <div class="mhot" style="left:87%;top:32%" data-place="小羊的家"></div>
+      <div class="mhot" style="left:32%;top:76%" data-place="瓢虫码头"></div>
+      <div id="mapTip" style="display:none;position:absolute;background:#1a1008;color:#fff;border-radius:6px;padding:7px 10px;min-width:160px;max-width:200px;pointer-events:none;z-index:50;font-family:'Nunito',sans-serif">
+        <div id="mapTipName" style="font-family:'WDXL Lubrifont SC',cursive;font-size:.9rem;margin-bottom:3px"></div>
+        <div id="mapTipDesc" style="font-size:.72rem;color:#ccc;line-height:1.5"></div>
+      </div>
+    </div>
+    <div id="mapDetail" style="display:none;margin-top:8px;background:#fff;border:1px solid #d0ccc0;border-radius:4px;padding:8px 12px">
+      <strong id="mapDetailName" style="font-family:'WDXL Lubrifont SC',cursive;font-size:.95rem;color:#2E4C99"></strong>
+      <p id="mapDetailDesc" style="font-size:.78rem;color:#555;margin-top:4px;line-height:1.6"></p>
+    </div>
+    <div id="mapBtns" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px"></div>
+  </div>
+  <div class="win-statusbar" id="mapStatus">12 个地点 · 点击标记查看详情</div>
+  <div class="resize-handle" onmousedown="startResize(event,'win-map')"></div>
+</div>
+
+<!-- ══ WIN: 咩光教会 ══ -->
+<div class="win" id="win-church" style="left:150px;top:70px;width:500px">
+  <div class="titlebar" onmousedown="startDrag(event,'win-church')">
+    <div class="titlebar-left"><span class="titlebar-icon">🔔</span><span class="titlebar-title">咩光教会 — Mieglow Church</span></div>
+    <div class="titlebar-btns">
+      <div class="win-btn" onclick="minimizeWin('win-church')">_</div>
+      <div class="win-btn" onclick="maximizeWin('win-church')">□</div>
+      <div class="win-btn" onclick="closeWin('win-church')" style="font-weight:900">×</div>
+    </div>
+  </div>
+  <div class="win-menubar"><span class="menu-item">文件(F)</span><span class="menu-item">查看(V)</span><span class="menu-item">帮助(H)</span></div>
+  <div class="win-body" style="height:420px">
+
+    <!-- 教会照片占位 -->
+    <div class="img-placeholder" style="width:100%;height:140px;margin-bottom:12px">
+      <span style="font-size:2rem">🏛️</span>
+      <div style="font-family:'WDXL Lubrifont SC',cursive;font-size:.85rem;color:#2E4C99">咩光教会</div>
+      <div>替换为教会照片</div>
+    </div>
+
+    <p style="font-size:.82rem;color:#555;margin-bottom:10px;line-height:1.7">猪咩岛的精神核心，以情绪疗愈为使命。崇拜象征平衡的「咩神」。</p>
+    <div style="background:#f0eeff;border-left:3px solid #2E4C99;padding:8px 10px;margin-bottom:12px;font-size:.8rem;color:#555;font-style:italic">「温柔是最强的力量，云朵再重也会变轻。」</div>
+
+    <div class="section-label">法器 · 圣物 SACRED ITEMS</div>
+
+    <!-- 4 件法器，每件有图片占位 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="display:flex;gap:8px;align-items:flex-start;background:#f8f6f0;border:1px solid #e0dcd0;padding:8px;border-radius:4px">
+        <div class="img-placeholder" style="width:52px;height:52px;flex-shrink:0"><span>🔔</span><div style="font-size:.55rem">图片</div></div>
+        <div><div class="wc-card-title">风铃杖</div><div class="wc-card-desc">7个半透明蓝铃铛，小羊的核心法器</div></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-start;background:#f8f6f0;border:1px solid #e0dcd0;padding:8px;border-radius:4px">
+        <div class="img-placeholder" style="width:52px;height:52px;flex-shrink:0"><span>📜</span><div style="font-size:.55rem">图片</div></div>
+        <div><div class="wc-card-title">柔风经</div><div class="wc-card-desc">空中流动的光影长卷</div></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-start;background:#f8f6f0;border:1px solid #e0dcd0;padding:8px;border-radius:4px">
+        <div class="img-placeholder" style="width:52px;height:52px;flex-shrink:0"><span>🍵</span><div style="font-size:.55rem">图片</div></div>
+        <div><div class="wc-card-title">薄荷茶</div><div class="wc-card-desc">仪式专用的神圣饮品</div></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-start;background:#f8f6f0;border:1px solid #e0dcd0;padding:8px;border-radius:4px">
+        <div class="img-placeholder" style="width:52px;height:52px;flex-shrink:0"><span>🏛️</span><div style="font-size:.55rem">图片</div></div>
+        <div><div class="wc-card-title">咩神殿</div><div class="wc-card-desc">岛屿最高处的圣所</div></div>
+      </div>
+    </div>
+
+  </div>
+  <div class="win-statusbar">1 张教会照片 · 4 件法器图片待替换</div>
+  <div class="resize-handle" onmousedown="startResize(event,'win-church')"></div>
+</div>
+
+<!-- ══ WIN: 关于 ══ -->
+<div class="win" id="win-about" style="left:200px;top:100px;width:320px">
+  <div class="titlebar" onmousedown="startDrag(event,'win-about')">
+    <div class="titlebar-left"><span class="titlebar-icon">📋</span><span class="titlebar-title">关于猪咩岛 — About</span></div>
+    <div class="titlebar-btns">
+      <div class="win-btn" onclick="minimizeWin('win-about')">_</div>
+      <div class="win-btn" onclick="maximizeWin('win-about')">□</div>
+      <div class="win-btn" onclick="closeWin('win-about')" style="font-weight:900">×</div>
+    </div>
+  </div>
+  <div class="win-body" style="height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center">
+    <div style="font-size:2.5rem">🐷🐑</div>
+    <div style="font-family:'WDXL Lubrifont SC',cursive;font-size:1.3rem;color:#2E4C99">猪咩岛</div>
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:.72rem;letter-spacing:.15em;color:#888">PIG & SHEEP ISLAND · v1.0</div>
+    <div style="font-size:.72rem;color:#aaa">爱咩 · 护咩 · 不杠咩</div>
+  </div>
+  <div class="win-statusbar">版本 1.0.0</div>
+  <div class="resize-handle" onmousedown="startResize(event,'win-about')"></div>
+</div>
+
+<!-- START MENU -->
+<div id="startMenu" style="display:none;position:absolute;bottom:44px;left:0;width:240px;background:linear-gradient(180deg,#d4d0c8,#c8c4bc);border:2px solid;border-color:#fff #808080 #808080 #fff;box-shadow:2px 2px 0 #000;z-index:2000">
+  <div style="display:flex">
+    <div style="width:28px;background:linear-gradient(180deg,#2E4C99,#1a2f66);display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px">
+      <span style="font-family:'WDXL Lubrifont SC',cursive;font-size:.65rem;color:rgba(255,255,255,.5);writing-mode:vertical-rl;transform:rotate(180deg);letter-spacing:.1em">猪咩岛 v1.0</span>
+    </div>
+    <div style="flex:1">
+      <div style="padding:4px 0;border-bottom:1px solid #a0a098">
+        <div style="padding:4px 8px;font-size:.68rem;font-weight:700;color:#666;font-family:'Space Grotesk',sans-serif;letter-spacing:.1em">FOLDERS</div>
+        <div class="sm-item" onclick="openWin('world');toggleStart()">🌍 &nbsp;世界观</div>
+        <div class="sm-item" onclick="openWin('chars');toggleStart()">🐷 &nbsp;主角</div>
+        <div class="sm-item" onclick="openWin('subchars');toggleStart()">🐾 &nbsp;配角图鉴</div>
+        <div class="sm-item" onclick="openWin('map');toggleStart()">🗺️ &nbsp;岛屿地图</div>
+        <div class="sm-item" onclick="openWin('church');toggleStart()">🔔 &nbsp;咩光教会</div>
+        <div class="sm-item" onclick="openWin('about');toggleStart()">📋 &nbsp;关于猪咩岛</div>
+      </div>
+      <div style="padding:4px 0;border-bottom:1px solid #a0a098">
+        <div style="padding:4px 8px;font-size:.68rem;font-weight:700;color:#666;font-family:'Space Grotesk',sans-serif;letter-spacing:.1em">祈福签 ✨</div>
+        <div style="padding:8px 10px">
+          <div id="sm-blessing-text" style="font-family:'WDXL Lubrifont SC',cursive;font-size:.78rem;color:#444;line-height:1.6;min-height:52px;background:#fff;border:1px solid #a0a098;padding:6px 8px;margin-bottom:6px">点击摇动风铃杖 ✨</div>
+          <div class="sm-item" onclick="getBlessing()" style="background:linear-gradient(180deg,#d4d0c8,#a8a49c);border:2px solid;border-color:#fff #808080 #808080 #fff;justify-content:center;padding:3px 8px">🔔 &nbsp;摇动风铃杖</div>
+        </div>
+      </div>
+      <div style="padding:4px 0;border-bottom:1px solid #a0a098">
+        <div class="sm-item" onclick="closeAllWins();toggleStart()">🗂️ &nbsp;整理桌面</div>
+      </div>
+      <div style="padding:8px 10px;font-size:.72rem;color:#666;font-style:italic;font-family:'WDXL Lubrifont SC',cursive;line-height:1.5">爱咩 · 护咩 · 不杠咩</div>
+    </div>
+  </div>
+</div>
+
+<!-- TASKBAR -->
+<div class="taskbar">
+  <div class="start-btn" id="startBtn">
+    <span style="font-size:1rem">🐷</span>
+    <span style="font-family:'WDXL Lubrifont SC',cursive;font-size:.85rem">咩 Start</span>
+  </div>
+  <div class="taskbar-divider"></div>
+  <div class="taskbar-windows">
+    <div class="taskbar-win-btn" id="tb-win-world" onclick="toggleWin('win-world')">🌍 世界观</div>
+    <div class="taskbar-win-btn" id="tb-win-chars" onclick="toggleWin('win-chars')">🐷 主角</div>
+    <div class="taskbar-win-btn" id="tb-win-subchars" onclick="toggleWin('win-subchars')">🐾 配角</div>
+    <div class="taskbar-win-btn" id="tb-win-map" onclick="toggleWin('win-map')">🗺️ 地图</div>
+    <div class="taskbar-win-btn" id="tb-win-church" onclick="toggleWin('win-church')">🔔 咩光教会</div>
+    <div class="taskbar-win-btn" id="tb-win-about" onclick="toggleWin('win-about')">📋 关于</div>
+  </div>
+  <div class="clock" id="clock">00:00</div>
+</div>
+
+<script>
+// ── DATA ──
+const blessings=[
+  '小羊摇了摇风铃杖……「今天要比昨天多爱自己一点点哦！」🔔',
+  '小猪慢慢点了点头：「稳稳的，一步一步来，你已经很好了。」🐷',
+  '柔风经有云：云朵再重也会变轻，心事再多也会散开。☁️',
+  '花大姐载你在云海上兜了一圈：「看，世界其实很大很美！」🐞',
+  '咩神赐福：今日宜喝薄荷茶，宜发呆，不宜焦虑。🍵',
+  '「你不需要证明什么，你本来就值得被爱。」🌬️',
+  '小羊找到一句话送给你：「慢慢来，花开有时。」📚',
+  '小猪收集了一朵特别圆的云，专门为你准备的治愈云。🌤️',
+];
+let lastB=-1;
+
+// ── BLESSING ──
+function getBlessing(){
+  let i;do{i=Math.floor(Math.random()*blessings.length)}while(i===lastB);
+  lastB=i;
+  const el=document.getElementById('sm-blessing-text');
+  el.style.opacity='0';
+  setTimeout(()=>{el.textContent=blessings[i];el.style.opacity='1';el.style.transition='opacity .3s'},200);
+}
+
+// ── START MENU ──
+function toggleStart(){
+  const m=document.getElementById('startMenu');
+  m.style.display=m.style.display==='block'?'none':'block';
+}
+document.getElementById('startBtn').addEventListener('click',toggleStart);
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#startMenu')&&!e.target.closest('#startBtn'))
+    document.getElementById('startMenu').style.display='none';
+});
+
+// ── CLOCK ──
+function updateClock(){
+  const n=new Date();
+  document.getElementById('clock').textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+}
+updateClock();setInterval(updateClock,1000);
+
+// ── WINDOW MANAGEMENT ──
+let zTop=200;
+function openWin(id){
+  const win=document.getElementById('win-'+id);
+  const tb=document.getElementById('tb-win-'+id);
+  win.classList.add('open');
+  if(tb)tb.classList.add('visible');
+  focusWin('win-'+id);
+}
+function closeWin(id){
+  const win=document.getElementById(id);
+  win.classList.remove('open');
+  win.style.display='none';
+  setTimeout(()=>win.style.display='',0);
+  const tb=document.getElementById('tb-'+id);
+  if(tb)tb.classList.remove('visible','active');
+}
+function minimizeWin(id){
+  document.getElementById(id).style.display='none';
+  const tb=document.getElementById('tb-'+id);
+  if(tb)tb.classList.remove('active');
+}
+function maximizeWin(id){
+  const win=document.getElementById(id);
+  if(win.dataset.maximized==='1'){
+    win.style.left=win.dataset.ox;win.style.top=win.dataset.oy;win.style.width=win.dataset.ow;
+    const body=win.querySelector('.win-body');if(body)body.style.height=win.dataset.oh;
+    win.dataset.maximized='0';
+  } else {
+    win.dataset.ox=win.style.left;win.dataset.oy=win.style.top;win.dataset.ow=win.style.width;
+    const body=win.querySelector('.win-body');win.dataset.oh=body?body.style.height:'';
+    win.style.left='0';win.style.top='0';win.style.width='100vw';
+    if(body)body.style.height='calc(100vh - 44px - 80px)';
+    win.dataset.maximized='1';
+  }
+}
+function toggleWin(id){
+  const win=document.getElementById(id);
+  const tb=document.getElementById('tb-'+id);
+  if(win.style.display==='none'){win.style.display='';focusWin(id);}
+  else if(win.classList.contains('focused')){win.style.display='none';if(tb)tb.classList.remove('active');}
+  else focusWin(id);
+}
+function focusWin(id){
+  document.querySelectorAll('.win').forEach(w=>w.classList.remove('focused'));
+  document.querySelectorAll('.taskbar-win-btn').forEach(b=>b.classList.remove('active'));
+  const win=document.getElementById(id);
+  win.style.zIndex=++zTop;win.classList.add('focused');
+  const tb=document.getElementById('tb-'+id);if(tb)tb.classList.add('active');
+}
+document.querySelectorAll('.win').forEach(w=>w.addEventListener('mousedown',()=>focusWin(w.id)));
+function closeAllWins(){
+  document.querySelectorAll('.win').forEach(w=>w.style.display='none');
+  document.querySelectorAll('.taskbar-win-btn').forEach(b=>b.classList.remove('active'));
+}
+
+// ── DRAG WINDOWS ──
+let drag=null,rsz=null,iconDrag=null;
+function startDrag(e,id){
+  const win=document.getElementById(id);focusWin(id);
+  drag={win,ox:e.clientX-win.offsetLeft,oy:e.clientY-win.offsetTop};e.preventDefault();
+}
+function startResize(e,id){
+  const win=document.getElementById(id);
+  rsz={win,ox:e.clientX,oy:e.clientY,ow:win.offsetWidth,oh:win.querySelector('.win-body')?.offsetHeight||200};
+  e.preventDefault();e.stopPropagation();
+}
+document.addEventListener('mousemove',e=>{
+  if(drag){drag.win.style.left=(e.clientX-drag.ox)+'px';drag.win.style.top=Math.max(0,e.clientY-drag.oy)+'px';}
+  if(rsz){rsz.win.style.width=Math.max(280,rsz.ow+e.clientX-rsz.ox)+'px';const b=rsz.win.querySelector('.win-body');if(b)b.style.height=Math.max(80,rsz.oh+e.clientY-rsz.oy-80)+'px';}
+  if(iconDrag){iconDrag.el.style.left=(e.clientX-iconDrag.ox)+'px';iconDrag.el.style.top=Math.max(0,e.clientY-iconDrag.oy)+'px';}
+});
+document.addEventListener('mouseup',()=>{drag=null;rsz=null;iconDrag=null;});
+
+// ── ICON DRAG + DBLCLICK ──
+document.querySelectorAll('.icon').forEach(icon=>{
+  icon.addEventListener('mousedown',e=>{
+    e.stopPropagation();
+    document.querySelectorAll('.icon').forEach(i=>i.classList.remove('selected'));
+    icon.classList.add('selected');
+    iconDrag={el:icon,ox:e.clientX-icon.offsetLeft,oy:e.clientY-icon.offsetTop,startX:e.clientX,startY:e.clientY};
+  });
+  icon.addEventListener('dblclick',e=>{
+    e.stopPropagation();
+    openWin(icon.id.replace('icon-',''));
+  });
+});
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.icon'))document.querySelectorAll('.icon').forEach(i=>i.classList.remove('selected'));
+});
+
+// ── MAP ──
+const mapPlaces={
+  '小猪咩小镇':{desc:'岛上最热闹的居民聚集地，有咩咩市场与猪咩广场。Figgy Fountain 是小镇的地标。'},
+  '咩神殿':{desc:'供奉平衡之神咩神的圣所（Mei Temple），晶柱常年发出柔和光芒。'},
+  '云能提炼厂':{desc:'将云海能量提炼成可用能源，维持岛屿漂浮与日常运作的关键设施。'},
+  '遗骨矿道':{desc:'古鲸骨骼内部的矿洞（Oasis Bone Mines），蕴含神秘矿石，是最神秘的地带。'},
+  '粉红图书馆':{desc:'收藏柔风经与各类童话古籍，粉红色书架与草地阅读区让人忘记烦恼。'},
+  '咩光珊咖馆':{desc:'Mieglow Cafe，唯一的咖啡馆，供应薄荷茶与云朵甜点，窗外是无边云海。'},
+  '星空露营地':{desc:'夜晚可以看到云上星空，配有星形帐篷与篝火，是治愈旅行的绝佳打卡地。'},
+  '骨骼温泉':{desc:'古鲸骨架旁天然形成的温泉，泉水透明微蓝，泡完全身放松。'},
+  '曲奇饼海滩':{desc:'岛的南端细软白沙滩，夕阳时分沙子变成金黄色，像刚出炉的曲奇饼干一样温暖。'},
+  '咩咩珊瑚礁':{desc:'岛屿北端的珊瑚群，色彩斑斓，是各类海洋小精灵的栖息地。'},
+  '小羊的家':{desc:'小羊Ramune住的小屋（Little Cloud House），白色圆顶，门前有风铃，飘着薄荷香气。'},
+  '瓢虫码头':{desc:'花大姐的停靠站，也是前往云海外世界的唯一出发港口。'}
+};
+function initMap(){
+  document.querySelectorAll('.mhot').forEach(h=>{
+    h.addEventListener('mouseenter',()=>{
+      const name=h.dataset.place;
+      const tip=document.getElementById('mapTip');
+      document.getElementById('mapTipName').textContent=name;
+      document.getElementById('mapTipDesc').textContent=mapPlaces[name]?.desc||'';
+      const wrap=document.getElementById('mapWrap');
+      const wr=wrap.getBoundingClientRect(),hr=h.getBoundingClientRect();
+      tip.style.display='block';
+      setTimeout(()=>{
+        let left=hr.left-wr.left+12,top=hr.top-wr.top-10;
+        if(left+tip.offsetWidth>wrap.offsetWidth-4)left=hr.left-wr.left-tip.offsetWidth-4;
+        if(top<0)top=hr.top-wr.top+20;
+        tip.style.left=left+'px';tip.style.top=top+'px';
+      },0);
+    });
+    h.addEventListener('mouseleave',()=>document.getElementById('mapTip').style.display='none');
+    h.addEventListener('click',()=>showMapPlace(h.dataset.place));
+  });
+  const btns=document.getElementById('mapBtns');
+  Object.keys(mapPlaces).forEach(name=>{
+    const b=document.createElement('button');
+    b.className='mplace-btn';b.textContent=name;
+    b.onclick=()=>showMapPlace(name,b);
+    btns.appendChild(b);
+  });
+}
+function showMapPlace(name,btn){
+  document.querySelectorAll('.mplace-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  document.getElementById('mapDetailName').textContent=name;
+  document.getElementById('mapDetailDesc').textContent=mapPlaces[name]?.desc||'';
+  document.getElementById('mapDetail').style.display='block';
+  document.getElementById('mapStatus').textContent='📍 '+name;
+}
+initMap();
+
+// ── CURSOR STARS ──
+const starColors=['#fff','#ffe066','#b8dcff','#ffd6e4','#c8f5de'];
+document.addEventListener('mousemove',e=>{
+  const s=document.createElement('div');
+  const sz=Math.random()*10+6;
+  const col=starColors[Math.floor(Math.random()*starColors.length)];
+  s.style.cssText=`position:fixed;left:${e.clientX-sz/2}px;top:${e.clientY-sz/2}px;pointer-events:none;z-index:9999;font-size:${sz}px;line-height:1;color:${col};text-shadow:0 0 4px ${col};transition:opacity 1.8s,transform 1.8s`;
+  s.textContent='✦';
+  document.body.appendChild(s);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    s.style.opacity='0';
+    s.style.transform=`rotate(${Math.random()*360}deg) scale(0.2) translate(${(Math.random()-0.5)*30}px,${-Math.random()*30}px)`;
+  }));
+  setTimeout(()=>s.remove(),1800);
+});
+</script>
+</body>
+</html>
